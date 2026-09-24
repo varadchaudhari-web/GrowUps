@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Lock, ShieldCheck, Sparkles, Scale, Shield, FileText, AlertCircle, RefreshCw } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Sparkles, Scale, Shield, FileText, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { GrowUpsLogo } from '../common/GrowUpsLogo';
 
@@ -83,11 +83,7 @@ export const PublicFooter: React.FC<PublicFooterProps> = ({ setActivePublicPage,
                   AI Virtual Team Architecture
                 </button>
               </li>
-              <li>
-                <button onClick={() => navigateTo('admin')} style={{ background: 'none', border: 'none', color: '#a855f7', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Lock size={12} /> Admin Section CMS
-                </button>
-              </li>
+
               <li>
                 <button onClick={onOpenDashboard} style={{ background: 'none', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer', padding: 0, fontSize: '0.85rem' }}>
                   Launch Founder Workspace

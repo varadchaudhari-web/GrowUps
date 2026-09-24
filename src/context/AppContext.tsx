@@ -165,7 +165,34 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [activeModuleId, setActiveModuleId] = useState<number>(1);
+  const [activeModuleId, setActiveModuleId] = useState<number>(() => {
+    // 1. Check URL Hash
+    const hash = window.location.hash.replace(/^#\/?/, '').trim();
+    if (hash.startsWith('dashboard')) {
+      const match = hash.match(/module-(\d+)/);
+      if (match && match[1]) {
+        const parsed = parseInt(match[1], 10);
+        if (parsed >= 1 && parsed <= 25) return parsed;
+      }
+    } else if (hash.startsWith('module-')) {
+      const match = hash.match(/module-(\d+)/);
+      if (match && match[1]) {
+        const parsed = parseInt(match[1], 10);
+        if (parsed >= 1 && parsed <= 25) return parsed;
+      }
+    }
+    // 2. Check localStorage
+    const saved = localStorage.getItem('growups_active_module_id');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (parsed >= 1 && parsed <= 25) return parsed;
+    }
+    return 1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('growups_active_module_id', activeModuleId.toString());
+  }, [activeModuleId]);
 
   // Module 1: Startup Profile
   const [startupData, setStartupData] = useState<StartupData>(() => {

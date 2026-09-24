@@ -6,8 +6,7 @@ import {
   Building2, Bot, Sparkles, BarChart3, LayoutGrid, FileText, Cpu,
   KanbanSquare, Palette, Megaphone, Users2, DollarSign, ShieldCheck,
   Presentation, Search, Gift, GraduationCap, Briefcase, UserPlus,
-  BriefcaseBusiness, BookOpen, MessageSquare, Building, TrendingUp, Lock,
-  CheckCircle2, Shield
+  BriefcaseBusiness, BookOpen, MessageSquare, Building, TrendingUp, Shield
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
@@ -35,7 +34,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   MessageSquare: <MessageSquare size={16} />,
   Building: <Building size={16} />,
   TrendingUp: <TrendingUp size={16} />,
-  Lock: <Lock size={16} />
+
 };
 
 const CATEGORIES = [
@@ -138,10 +137,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
         </div>
       )}
 
-      {/* Module Categories */}
+      {/* Module Categories — only show role-allowed modules */}
       {CATEGORIES.map(category => {
-        const modulesInCategory = ALL_25_MODULES.filter(m => m.category === category);
-        if (modulesInCategory.length === 0) return null;
+        const allowedInCategory = ALL_25_MODULES.filter(
+          m => m.category === category && canAccessModule(m.id)
+        );
+        if (allowedInCategory.length === 0) return null;
 
         return (
           <div key={category} style={{ marginBottom: '18px' }}>
@@ -158,57 +159,43 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-              {modulesInCategory.map(m => {
+              {allowedInCategory.map(m => {
                 const isActive = activeModuleId === m.id;
-                const isAllowed = canAccessModule(m.id);
 
                 return (
                   <button
                     key={m.id}
                     onClick={() => {
-                      if (isAllowed) {
-                        setActiveModuleId(m.id);
-                        onCloseMobile?.();
-                      }
+                      setActiveModuleId(m.id);
+                      onCloseMobile?.();
                     }}
                     style={{
                       width: '100%',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'space-between',
+                      gap: '8px',
                       padding: '8px 10px',
                       borderRadius: '8px',
                       border: isActive ? '1px solid rgba(59, 130, 246, 0.4)' : '1px solid transparent',
                       background: isActive
                         ? 'linear-gradient(90deg, rgba(37, 99, 235, 0.2) 0%, rgba(15, 23, 42, 0.6) 100%)'
-                        : isAllowed ? 'transparent' : 'rgba(15, 23, 42, 0.3)',
-                      color: isActive ? '#60a5fa' : isAllowed ? '#cbd5e1' : '#475569',
+                        : 'transparent',
+                      color: isActive ? '#60a5fa' : '#cbd5e1',
                       fontSize: '0.8rem',
                       fontWeight: isActive ? 600 : 400,
                       textAlign: 'left',
-                      cursor: isAllowed ? 'pointer' : 'not-allowed',
-                      opacity: isAllowed ? 1 : 0.55,
-                      transition: 'all 0.15s ease'
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      minWidth: 0
                     }}
-                    title={!isAllowed ? `Not accessible for ${currentUser?.role} role. Switch to Admin or authorized persona.` : m.description}
+                    title={m.description}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <span style={{ color: isActive ? '#3b82f6' : isAllowed ? '#94a3b8' : '#475569' }}>
-                        {ICON_MAP[m.iconName] || <Sparkles size={16} />}
-                      </span>
-                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {m.title.replace(/Module \d+: /, '')}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                      <span style={{ fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace' }}>
-                        M{m.id}
-                      </span>
-                      {!isAllowed && (
-                        <Lock size={12} color="#64748b" />
-                      )}
-                    </div>
+                    <span style={{ color: isActive ? '#3b82f6' : '#94a3b8', flexShrink: 0 }}>
+                      {ICON_MAP[m.iconName] || <Sparkles size={16} />}
+                    </span>
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {m.title.replace(/Module \d+: /, '')}
+                    </span>
                   </button>
                 );
               })}

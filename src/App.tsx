@@ -60,19 +60,104 @@ import { Module23IncubatorPortal } from './components/modules/Module23IncubatorP
 import { Module24StartupAnalytics } from './components/modules/Module24StartupAnalytics';
 import { Module25AdminGovernance } from './components/modules/Module25AdminGovernance';
 
+const VALID_PUBLIC_PAGES = [
+  'home', 'build', 'grow', 'funding', 'network', 'learn', 'ai', 'about',
+  'privacy', 'terms', 'security', 'refunds', 'disclaimer', 'admin'
+];
+
+const parseRoute = (): { mode: 'public' | 'dashboard'; publicPage: string; moduleId?: number } => {
+  const hash = window.location.hash.replace(/^#\/?/, '').trim();
+
+  if (hash.startsWith('dashboard')) {
+    const modMatch = hash.match(/module-(\d+)/);
+    const modId = modMatch ? parseInt(modMatch[1], 10) : undefined;
+    return { mode: 'dashboard', publicPage: 'home', moduleId: modId };
+  }
+
+  if (hash.startsWith('module-')) {
+    const modMatch = hash.match(/module-(\d+)/);
+    const modId = modMatch ? parseInt(modMatch[1], 10) : undefined;
+    return { mode: 'dashboard', publicPage: 'home', moduleId: modId };
+  }
+
+  if (VALID_PUBLIC_PAGES.includes(hash)) {
+    return { mode: 'public', publicPage: hash };
+  }
+
+  // Fallback to localStorage
+  const savedMode = localStorage.getItem('growups_view_mode') as 'public' | 'dashboard' | null;
+  const savedPublicPage = localStorage.getItem('growups_active_public_page');
+  const savedModuleId = localStorage.getItem('growups_active_module_id');
+
+  if (savedMode === 'dashboard') {
+    const modId = savedModuleId ? parseInt(savedModuleId, 10) : undefined;
+    return { mode: 'dashboard', publicPage: 'home', moduleId: modId };
+  }
+
+  if (savedPublicPage && VALID_PUBLIC_PAGES.includes(savedPublicPage)) {
+    return { mode: 'public', publicPage: savedPublicPage };
+  }
+
+  return { mode: 'public', publicPage: 'home' };
+};
+
 const MainOrchestrator: React.FC = () => {
   const { activeModuleId, setActiveModuleId } = useApp();
   const { isAuthenticated, currentUser, canAccessModule, setShowLoginModal } = useAuth();
 
-  // Mode: 'public' or 'dashboard'
-  const [viewMode, setViewMode] = useState<'public' | 'dashboard'>('public');
-  const [activePublicPage, setActivePublicPage] = useState<string>('home');
+  const initialRoute = parseRoute();
+  const [viewMode, setViewMode] = useState<'public' | 'dashboard'>(initialRoute.mode);
+  const [activePublicPage, setActivePublicPage] = useState<string>(initialRoute.publicPage);
   const [selectedCardDetail, setSelectedCardDetail] = useState<CMSCard | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [lastUserId, setLastUserId] = useState<string | null>(currentUser?.id || null);
+  const isInitialMount = React.useRef(true);
 
-  // Auto-redirect to dashboard on login/registration, or redirect to public Home page on logout
+  // Sync state to URL hash & localStorage
   useEffect(() => {
+    localStorage.setItem('growups_view_mode', viewMode);
+    localStorage.setItem('growups_active_public_page', activePublicPage);
+
+    if (viewMode === 'dashboard') {
+      const targetHash = `#dashboard/module-${activeModuleId}`;
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, '', targetHash);
+      }
+    } else {
+      const targetHash = activePublicPage === 'home' ? '#home' : `#${activePublicPage}`;
+      if (window.location.hash !== targetHash) {
+        window.history.replaceState(null, '', targetHash);
+      }
+    }
+  }, [viewMode, activePublicPage, activeModuleId]);
+
+  // Listen for browser Back/Forward (popstate/hashchange)
+  useEffect(() => {
+    const handleHashChange = () => {
+      const route = parseRoute();
+      setViewMode(route.mode);
+      if (route.mode === 'public') {
+        setActivePublicPage(route.publicPage);
+      } else if (route.moduleId && route.moduleId >= 1 && route.moduleId <= 25) {
+        setActiveModuleId(route.moduleId);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleHashChange);
+    };
+  }, [setActiveModuleId]);
+
+  // Auto-redirect to dashboard on new login/registration, or redirect to public Home page on logout
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     if (currentUser && currentUser.id !== lastUserId) {
       setLastUserId(currentUser.id);
       setViewMode('dashboard');
@@ -82,6 +167,9 @@ const MainOrchestrator: React.FC = () => {
       setLastUserId(null);
       setActivePublicPage('home');
       setViewMode('public');
+      localStorage.setItem('growups_view_mode', 'public');
+      localStorage.setItem('growups_active_public_page', 'home');
+      window.history.replaceState(null, '', '#home');
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [currentUser, lastUserId]);
